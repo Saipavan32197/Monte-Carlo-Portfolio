@@ -1,0 +1,14 @@
+,value
+Mean ending value,116290.28083587506
+Median ending value,111781.76629072908
+5th percentile ending value,74243.65849251731
+95th percentile ending value,173453.09902426437
+Expected return,0.16290280835875073
+Probability of a loss,0.3318
+Probability of losing >20%,0.0876
+VaR 95% (1y),25756.341507482684
+CVaR 95% (1y),32716.251004148806
+VaR 99% (1y),36921.46908991096
+CVaR 99% (1y),41600.67656019295
+Median max drawdown,-0.20816848446246028
+Worst-5% max drawdown,-0.3716556707766276
