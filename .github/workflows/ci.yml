@@ -1,0 +1,89 @@
+
+name: Portfolio Risk CI
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portfolio-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    env:
+      MPLBACKEND: Agg
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff
+
+      - name: Check Python syntax and lint
+        run: |
+          ruff check . \
+            --select E4,E7,E9,F \
+            --ignore E402,E731
+
+      - name: Verify input data
+        run: |
+          test -s data/prices.csv
+          python -c "import pandas as pd; df = pd.read_csv('data/prices.csv'); assert 'Date' in df.columns; print('Input data validation passed')"
+
+      - name: Run independent model verification
+        run: |
+          python verify.py
+
+      - name: Run portfolio simulation
+        run: |
+          python mc_portfolio_risk.py
+
+      - name: Verify generated reports
+        run: |
+          test -s output/stock_estimates.csv
+          test -s output/correlations.csv
+          test -s output/risk_report.csv
+          test -s output/1_correlations.png
+          test -s output/2_risk_return.png
+          test -s output/3_simulated_paths.png
+          test -s output/4_ending_value_distribution.png
+
+      - name: Upload simulation artifacts
+        if: always() && matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-risk-reports
+          path: output/
+          if-no-files-found: warn
+          retention-days: 7
